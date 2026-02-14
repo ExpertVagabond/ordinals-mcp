@@ -11,8 +11,17 @@
   ],
   "scripts": {
     "build": "tsc && node esbuild.config.js",
+    "prepublishOnly": "npm run build",
     "watch": "tsc --watch",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ExpertVagabond/ordinals-mcp.git"
+  },
+  "homepage": "https://github.com/ExpertVagabond/ordinals-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/ExpertVagabond/ordinals-mcp/issues"
   },
   "keywords": [
     "bitcoin",
