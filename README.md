@@ -2,6 +2,11 @@
 
 [![npm version](https://img.shields.io/npm/v/ordinals-mcp.svg)](https://www.npmjs.com/package/ordinals-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Website](https://img.shields.io/badge/website-ordinals--mcp.pages.dev-f7931a)](https://ordinals-mcp.pages.dev)
+
+<p align="center">
+  <img src="logo.png" alt="ordinals-mcp" width="140" height="140" style="border-radius: 50%;">
+</p>
 
 Bitcoin Ordinals MCP Server — multi-API access to inscriptions, runes, BRC-20 tokens, collections, marketplace data, and rare sats.
 
@@ -143,6 +148,13 @@ npm run build          # TypeScript + esbuild bundle
 npm run watch          # TypeScript watch mode
 npm run inspector      # MCP Inspector for testing
 ```
+
+## Links
+
+- [Website](https://ordinals-mcp.pages.dev)
+- [npm](https://www.npmjs.com/package/ordinals-mcp)
+- [GitHub](https://github.com/ExpertVagabond/ordinals-mcp)
+- [Setup Gist](https://gist.github.com/ExpertVagabond/6448a5c0a1c8a71bee3e8d598cb7e17e)
 
 ## License
 
