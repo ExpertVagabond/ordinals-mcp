@@ -75,42 +75,49 @@ for (const action of actions) {
   handlerMap.set(action.tool.name, action.handler);
 }
 
-// Create server
-const server = new Server(
-  {
-    name: "ordinals-mcp",
-    version: "0.1.0",
-  },
-  {
-    capabilities: {
-      tools: {},
+function createServer() {
+  const server = new Server(
+    {
+      name: "ordinals-mcp",
+      version: "0.1.2",
     },
-  },
-);
+    {
+      capabilities: {
+        tools: {},
+      },
+    },
+  );
 
-// List tools
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: actions.map((a) => a.tool),
-}));
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: actions.map((a) => a.tool),
+  }));
 
-// Call tool
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const handler = handlerMap.get(request.params.name);
-  if (!handler) {
-    return errorResult(`Unknown tool: ${request.params.name}`);
-  }
-  try {
-    return await handler(request);
-  } catch (e) {
-    return errorResult(e instanceof Error ? e.message : String(e));
-  }
-});
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const handler = handlerMap.get(request.params.name);
+    if (!handler) {
+      return errorResult(`Unknown tool: ${request.params.name}`);
+    }
+    try {
+      return await handler(request);
+    } catch (e) {
+      return errorResult(e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  return server;
+}
+
+// Smithery sandbox export for scanning
+export function createSandboxServer() {
+  return createServer();
+}
 
 // Start server
 async function main() {
+  const server = createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error(`ordinals-mcp v0.1.0 running (${actions.length} tools)`);
+  console.error(`ordinals-mcp v0.1.2 running (${actions.length} tools)`);
 }
 
 main().catch((e) => {
