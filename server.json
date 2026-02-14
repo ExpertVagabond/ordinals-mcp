@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.expertvagabond/ordinals",
-  "description": "Bitcoin Ordinals MCP Server — 24 tools for inscriptions, runes, BRC-20, collections, marketplace data, and rare sats. Multi-API fallback with intelligent caching.",
+  "name": "io.github.ExpertVagabond/ordinals",
+  "description": "Bitcoin Ordinals MCP Server — inscriptions, runes, BRC-20, collections & rare sats",
   "repository": {
     "url": "https://github.com/ExpertVagabond/ordinals-mcp",
     "source": "github"
   },
-  "version": "0.1.1",
+  "version": "0.1.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "ordinals-mcp",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "transport": {
         "type": "stdio"
       },
