@@ -3,3 +3,4 @@ build/
 *.tgz
 .env
 .env.*
+.smithery/
