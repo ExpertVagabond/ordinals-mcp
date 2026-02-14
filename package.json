@@ -1,7 +1,7 @@
 {
   "name": "ordinals-mcp",
-  "version": "0.1.1",
-  "mcpName": "io.github.expertvagabond/ordinals",
+  "version": "0.1.2",
+  "mcpName": "io.github.ExpertVagabond/ordinals",
   "description": "Bitcoin Ordinals MCP Server — inscriptions, runes, BRC-20, collections, marketplace data",
   "type": "module",
   "bin": {
