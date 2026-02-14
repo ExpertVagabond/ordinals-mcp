@@ -1,0 +1,42 @@
+{
+  "name": "ordinals-mcp",
+  "version": "0.1.0",
+  "description": "Bitcoin Ordinals MCP Server — inscriptions, runes, BRC-20, collections, marketplace data",
+  "type": "module",
+  "bin": {
+    "ordinals-mcp": "build/index.js"
+  },
+  "files": [
+    "build/index.js"
+  ],
+  "scripts": {
+    "build": "tsc && node esbuild.config.js",
+    "watch": "tsc --watch",
+    "inspector": "npx @modelcontextprotocol/inspector build/index.js"
+  },
+  "keywords": [
+    "bitcoin",
+    "ordinals",
+    "inscriptions",
+    "runes",
+    "brc-20",
+    "mcp",
+    "model-context-protocol",
+    "ai"
+  ],
+  "author": "Purple Squirrel Media",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.23.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "esbuild": "^0.25.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
