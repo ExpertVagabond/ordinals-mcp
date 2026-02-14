@@ -1,0 +1,43 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.expertvagabond/ordinals",
+  "description": "Bitcoin Ordinals MCP Server — 24 tools for inscriptions, runes, BRC-20, collections, marketplace data, and rare sats. Multi-API fallback with intelligent caching.",
+  "repository": {
+    "url": "https://github.com/ExpertVagabond/ordinals-mcp",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "ordinals-mcp",
+      "version": "0.1.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "description": "Hiro API key (free at platform.hiro.so) — 500 RPM",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true,
+          "name": "HIRO_API_KEY"
+        },
+        {
+          "description": "Ordiscan API key (free at ordiscan.com/docs/api)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true,
+          "name": "ORDISCAN_API_KEY"
+        },
+        {
+          "description": "Magic Eden API key (optional, higher rate limits)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true,
+          "name": "MAGIC_EDEN_API_KEY"
+        }
+      ]
+    }
+  ]
+}
