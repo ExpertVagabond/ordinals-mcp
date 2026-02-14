@@ -1,0 +1,25 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      HIRO_API_KEY:
+        type: string
+        description: "Hiro API key (free at platform.hiro.so) — 500 RPM"
+      ORDISCAN_API_KEY:
+        type: string
+        description: "Ordiscan API key (free at ordiscan.com/docs/api)"
+      MAGIC_EDEN_API_KEY:
+        type: string
+        description: "Magic Eden API key (optional, higher rate limits)"
+    required: []
+  commandFunction: |-
+    (config) => ({
+      command: 'node',
+      args: ['build/index.js'],
+      env: {
+        HIRO_API_KEY: config.HIRO_API_KEY || '',
+        ORDISCAN_API_KEY: config.ORDISCAN_API_KEY || '',
+        MAGIC_EDEN_API_KEY: config.MAGIC_EDEN_API_KEY || '',
+      }
+    })
