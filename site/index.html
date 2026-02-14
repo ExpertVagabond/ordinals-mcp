@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ordinals-mcp — Bitcoin Ordinals MCP Server</title>
+  <meta name="description" content="24-tool MCP server for Bitcoin Ordinals — inscriptions, runes, BRC-20, collections, marketplace data, and rare sats.">
+  <meta property="og:title" content="ordinals-mcp">
+  <meta property="og:description" content="Bitcoin Ordinals MCP Server — 24 tools for inscriptions, runes, BRC-20, collections, and marketplace data.">
+  <meta property="og:image" content="logo.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-grid"></div>
+
+  <header class="hero">
+    <img src="logo.png" alt="ordinals-mcp logo" class="logo" width="140" height="140">
+    <h1>ordinals-mcp</h1>
+    <p class="tagline">Bitcoin Ordinals MCP Server</p>
+    <p class="sub">24 tools for inscriptions, runes, BRC-20, collections, marketplace data &amp; rare sats</p>
+    <div class="badges">
+      <a href="https://www.npmjs.com/package/ordinals-mcp"><img src="https://img.shields.io/npm/v/ordinals-mcp?color=f7931a&label=npm&style=flat-square" alt="npm"></a>
+      <a href="https://github.com/ExpertVagabond/ordinals-mcp"><img src="https://img.shields.io/github/stars/ExpertVagabond/ordinals-mcp?color=f7931a&style=flat-square" alt="GitHub stars"></a>
+      <a href="https://github.com/ExpertVagabond/ordinals-mcp/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-f7931a?style=flat-square" alt="MIT License"></a>
+    </div>
+  </header>
+
+  <main>
+    <section class="install" id="install">
+      <h2>Quick Start</h2>
+      <div class="code-block">
+        <div class="code-label">Claude Desktop / Claude Code config</div>
+        <pre><code>{
+  "mcpServers": {
+    "ordinals": {
+      "command": "npx",
+      "args": ["ordinals-mcp@latest"],
+      "env": {
+        "HIRO_API_KEY": "your-key",
+        "ORDISCAN_API_KEY": "your-key"
+      }
+    }
+  }
+}</code></pre>
+      </div>
+      <div class="key-links">
+        <p>Get free API keys:</p>
+        <a href="https://platform.hiro.so" target="_blank" rel="noopener">Hiro <span class="rpm">500 RPM</span></a>
+        <a href="https://ordiscan.com/docs/api" target="_blank" rel="noopener">Ordiscan</a>
+        <a href="https://docs.magiceden.io" target="_blank" rel="noopener">Magic Eden <span class="optional">optional</span></a>
+      </div>
+    </section>
+
+    <section class="tools" id="tools">
+      <h2>24 Tools</h2>
+      <div class="tool-grid">
+        <div class="tool-category">
+          <h3>Inscriptions</h3>
+          <ul>
+            <li><code>get_inscription</code><span>Metadata by ID or number</span></li>
+            <li><code>search_inscriptions</code><span>Filter by address, mime, rarity, block</span></li>
+            <li><code>get_inscription_content</code><span>Raw content (text, images)</span></li>
+            <li><code>get_inscription_transfers</code><span>Full transfer history</span></li>
+            <li><code>get_inscription_traits</code><span>Collection trait info</span></li>
+          </ul>
+        </div>
+        <div class="tool-category">
+          <h3>Address</h3>
+          <ul>
+            <li><code>get_address_inscriptions</code><span>All inscriptions for address</span></li>
+            <li><code>get_brc20_balances</code><span>BRC-20 token balances</span></li>
+            <li><code>get_rune_balances</code><span>Rune balances</span></li>
+            <li><code>get_address_rare_sats</code><span>Rare satoshis held</span></li>
+          </ul>
+        </div>
+        <div class="tool-category">
+          <h3>Runes</h3>
+          <ul>
+            <li><code>get_rune_info</code><span>Etching details, supply, terms</span></li>
+            <li><code>list_runes</code><span>Paginated rune listing</span></li>
+            <li><code>get_rune_holders</code><span>Top holders by balance</span></li>
+            <li><code>get_rune_activity</code><span>Mints, transfers, burns</span></li>
+            <li><code>get_rune_market_info</code><span>Price, market cap, volume</span></li>
+            <li><code>get_rune_unlock_date</code><span>Name availability check</span></li>
+          </ul>
+        </div>
+        <div class="tool-category">
+          <h3>BRC-20</h3>
+          <ul>
+            <li><code>get_brc20_token</code><span>Token details &amp; supply</span></li>
+            <li><code>get_brc20_activity</code><span>Deploy, mint, transfer events</span></li>
+            <li><code>get_brc20_holders</code><span>Top token holders</span></li>
+          </ul>
+        </div>
+        <div class="tool-category">
+          <h3>Collections &amp; Market</h3>
+          <ul>
+            <li><code>get_collection_info</code><span>Stats, floor, volume</span></li>
+            <li><code>get_collection_inscriptions</code><span>Inscriptions in collection</span></li>
+            <li><code>get_collection_listings</code><span>Magic Eden listings</span></li>
+          </ul>
+        </div>
+        <div class="tool-category">
+          <h3>Sats &amp; Transactions</h3>
+          <ul>
+            <li><code>get_sat_info</code><span>Rarity, epoch, inscriptions</span></li>
+            <li><code>get_tx_inscriptions</code><span>Inscriptions in a TX</span></li>
+            <li><code>get_tx_runes</code><span>Rune transfers in a TX</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="architecture" id="architecture">
+      <h2>Architecture</h2>
+      <div class="arch-grid">
+        <div class="arch-card">
+          <h3>Multi-API Fallback</h3>
+          <div class="flow">
+            <div class="flow-step active">Cache</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step primary">Hiro</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step secondary">Ordiscan</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step stale">Stale Cache</div>
+          </div>
+          <p>Automatic failover across providers. Never miss a query.</p>
+        </div>
+        <div class="arch-card">
+          <h3>Intelligent Caching</h3>
+          <table>
+            <tr><td>Sat rarity</td><td class="ttl">24h</td></tr>
+            <tr><td>Inscription metadata</td><td class="ttl">5 min</td></tr>
+            <tr><td>Rune etching info</td><td class="ttl">5 min</td></tr>
+            <tr><td>Collection info</td><td class="ttl">2 min</td></tr>
+            <tr><td>Balances</td><td class="ttl">1 min</td></tr>
+            <tr><td>Marketplace listings</td><td class="ttl">30s</td></tr>
+          </table>
+        </div>
+        <div class="arch-card">
+          <h3>Rate Limiting</h3>
+          <table>
+            <tr><td>Hiro</td><td class="ttl">500 RPM</td></tr>
+            <tr><td>Ordiscan</td><td class="ttl">Daily</td></tr>
+            <tr><td>Magic Eden</td><td class="ttl">30 RPM</td></tr>
+          </table>
+          <p>Per-API token buckets with 80% safety margin.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="data-sources" id="sources">
+      <h2>Data Sources</h2>
+      <div class="source-grid">
+        <div class="source">
+          <h3>Hiro</h3>
+          <span class="role">Primary</span>
+          <p>Inscriptions, BRC-20, Runes</p>
+        </div>
+        <div class="source">
+          <h3>Ordiscan</h3>
+          <span class="role">Secondary</span>
+          <p>Rare sats, collections, alkanes</p>
+        </div>
+        <div class="source">
+          <h3>Magic Eden</h3>
+          <span class="role">Marketplace</span>
+          <p>Listings, floor prices, sales</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-links">
+      <a href="https://github.com/ExpertVagabond/ordinals-mcp">GitHub</a>
+      <a href="https://www.npmjs.com/package/ordinals-mcp">npm</a>
+      <a href="https://gist.github.com/ExpertVagabond/6448a5c0a1c8a71bee3e8d598cb7e17e">Gist</a>
+    </div>
+    <p>Built by <a href="https://github.com/ExpertVagabond">Purple Squirrel Media</a></p>
+  </footer>
+</body>
+</html>
