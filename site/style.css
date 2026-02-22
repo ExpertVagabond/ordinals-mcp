@@ -388,3 +388,4 @@ footer p a {
     grid-template-columns: 1fr;
   }
 }
+.alt-runtime{margin-top:1rem;color:var(--text-dim);font-size:.875rem}.alt-runtime code{font-size:.85rem}
