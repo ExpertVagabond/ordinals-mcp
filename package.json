@@ -1,6 +1,6 @@
 {
   "name": "ordinals-mcp",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "mcpName": "io.github.ExpertVagabond/ordinals",
   "description": "Bitcoin Ordinals MCP Server — inscriptions, runes, BRC-20, collections, marketplace data",
   "type": "module",
@@ -14,6 +14,7 @@
     "build": "tsc && node esbuild.config.js",
     "prepublishOnly": "npm run build",
     "watch": "tsc --watch",
+    "start:http": "node build/http-server.js",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js"
   },
   "repository": {
@@ -38,6 +39,10 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.8.0",
+    "@types/express": "^5.0.6",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "stripe": "^20.3.0",
     "zod": "^3.23.8",
     "zod-to-json-schema": "^3.23.5"
   },
