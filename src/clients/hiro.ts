@@ -6,7 +6,7 @@ const limiter = getRateLimiter("hiro", config.hiro.maxRpm, config.rateLimitBuffe
 
 function headers(): Record<string, string> {
   const h: Record<string, string> = { Accept: "application/json" };
-  if (config.hiro.key) h["x-hiro-api-key"] = config.hiro.key;
+  if (config.hiro.key) h["x-api-key"] = config.hiro.key;
   return h;
 }
 
@@ -85,7 +85,7 @@ export interface PaginatedResponse<T> {
 
 export async function getInscription(id: string): Promise<InscriptionMeta> {
   return request<InscriptionMeta>(
-    `/ordinals/v1/inscriptions/${encodeURIComponent(id)}`,
+    `/v1/inscriptions/${encodeURIComponent(id)}`,
     `hiro:inscription:${id}`,
     TTL.INSCRIPTION_META,
   );
@@ -119,7 +119,7 @@ export async function searchInscriptions(params: {
 
   const key = `hiro:inscriptions:${qs.toString()}`;
   return request<PaginatedResponse<InscriptionMeta>>(
-    `/ordinals/v1/inscriptions?${qs}`,
+    `/v1/inscriptions?${qs}`,
     key,
     TTL.INSCRIPTION_META,
   );
@@ -127,7 +127,7 @@ export async function searchInscriptions(params: {
 
 export async function getInscriptionContent(id: string): Promise<{ contentType: string; data: string }> {
   await limiter.wait();
-  const url = `${config.hiro.baseUrl}/ordinals/v1/inscriptions/${encodeURIComponent(id)}/content`;
+  const url = `${config.hiro.baseUrl}/v1/inscriptions/${encodeURIComponent(id)}/content`;
   const res = await fetch(url, { headers: headers() });
   if (!res.ok) throw new HiroApiError(res.status, res.statusText);
 
@@ -160,7 +160,7 @@ export async function getInscriptionTransfers(
   limit = 20,
 ): Promise<PaginatedResponse<Transfer>> {
   return request<PaginatedResponse<Transfer>>(
-    `/ordinals/v1/inscriptions/${encodeURIComponent(id)}/transfers?offset=${offset}&limit=${limit}`,
+    `/v1/inscriptions/${encodeURIComponent(id)}/activity?offset=${offset}&limit=${limit}`,
     `hiro:transfers:${id}:${offset}:${limit}`,
     TTL.ACTIVITY,
   );
@@ -184,7 +184,7 @@ export interface SatInfo {
 
 export async function getSatInfo(ordinal: string): Promise<SatInfo> {
   return request<SatInfo>(
-    `/ordinals/v1/sats/${encodeURIComponent(ordinal)}`,
+    `/v1/sats/${encodeURIComponent(ordinal)}`,
     `hiro:sat:${ordinal}`,
     TTL.SAT_RARITY,
   );
@@ -209,7 +209,7 @@ export interface Brc20Token {
 
 export async function getBrc20Token(ticker: string): Promise<Brc20Token> {
   return request<Brc20Token>(
-    `/ordinals/v1/brc-20/tokens/${encodeURIComponent(ticker)}`,
+    `/v1/brc20/ticker/${encodeURIComponent(ticker)}`,
     `hiro:brc20:${ticker}`,
     TTL.INSCRIPTION_META,
   );
@@ -228,7 +228,7 @@ export async function getBrc20Balances(
   limit = 20,
 ): Promise<PaginatedResponse<Brc20Balance>> {
   return request<PaginatedResponse<Brc20Balance>>(
-    `/ordinals/v1/brc-20/balances/${encodeURIComponent(address)}?offset=${offset}&limit=${limit}`,
+    `/v1/ordinals/address/${encodeURIComponent(address)}/brc20?offset=${offset}&limit=${limit}`,
     `hiro:brc20bal:${address}:${offset}:${limit}`,
     TTL.BALANCE,
   );
@@ -262,7 +262,7 @@ export async function getBrc20Activity(params: {
   qs.set("offset", String(params.offset ?? 0));
   qs.set("limit", String(params.limit ?? 20));
   return request<PaginatedResponse<Brc20Activity>>(
-    `/ordinals/v1/brc-20/activity?${qs}`,
+    `/v1/brc20/activity?${qs}`,
     `hiro:brc20act:${qs}`,
     TTL.ACTIVITY,
   );
@@ -279,7 +279,7 @@ export async function getBrc20Holders(
   limit = 20,
 ): Promise<PaginatedResponse<Brc20Holder>> {
   return request<PaginatedResponse<Brc20Holder>>(
-    `/ordinals/v1/brc-20/tokens/${encodeURIComponent(ticker)}/holders?offset=${offset}&limit=${limit}`,
+    `/v1/brc20/ticker/${encodeURIComponent(ticker)}/holders?offset=${offset}&limit=${limit}`,
     `hiro:brc20holders:${ticker}:${offset}:${limit}`,
     TTL.BALANCE,
   );
@@ -307,7 +307,7 @@ export interface RuneEtching {
 
 export async function getRuneInfo(name: string): Promise<RuneEtching> {
   return request<RuneEtching>(
-    `/runes/v1/etchings/${encodeURIComponent(name)}`,
+    `/v1/runes/${encodeURIComponent(name)}`,
     `hiro:rune:${name}`,
     TTL.RUNE_ETCHING,
   );
@@ -321,7 +321,7 @@ export async function listRunes(params: {
   qs.set("offset", String(params.offset ?? 0));
   qs.set("limit", String(params.limit ?? 20));
   return request<PaginatedResponse<RuneEtching>>(
-    `/runes/v1/etchings?${qs}`,
+    `/v1/runes?${qs}`,
     `hiro:runes:${qs}`,
     TTL.RUNE_ETCHING,
   );
@@ -339,7 +339,7 @@ export async function getRuneBalances(
   limit = 20,
 ): Promise<PaginatedResponse<RuneBalance>> {
   return request<PaginatedResponse<RuneBalance>>(
-    `/runes/v1/addresses/${encodeURIComponent(address)}/balances?offset=${offset}&limit=${limit}`,
+    `/v1/ordinals/address/${encodeURIComponent(address)}/runes?offset=${offset}&limit=${limit}`,
     `hiro:runebal:${address}:${offset}:${limit}`,
     TTL.BALANCE,
   );
@@ -356,7 +356,7 @@ export async function getRuneHolders(
   limit = 20,
 ): Promise<PaginatedResponse<RuneHolder>> {
   return request<PaginatedResponse<RuneHolder>>(
-    `/runes/v1/etchings/${encodeURIComponent(name)}/holders?offset=${offset}&limit=${limit}`,
+    `/v1/runes/${encodeURIComponent(name)}/holders?offset=${offset}&limit=${limit}`,
     `hiro:runeholders:${name}:${offset}:${limit}`,
     TTL.BALANCE,
   );
@@ -381,7 +381,7 @@ export async function getRuneActivity(
   limit = 20,
 ): Promise<PaginatedResponse<RuneActivity>> {
   return request<PaginatedResponse<RuneActivity>>(
-    `/runes/v1/etchings/${encodeURIComponent(name)}/activity?offset=${offset}&limit=${limit}`,
+    `/v1/runes/${encodeURIComponent(name)}/activity?offset=${offset}&limit=${limit}`,
     `hiro:runeact:${name}:${offset}:${limit}`,
     TTL.ACTIVITY,
   );
@@ -396,7 +396,7 @@ export interface InscriptionStats {
 
 export async function getInscriptionStats(): Promise<PaginatedResponse<InscriptionStats>> {
   return request<PaginatedResponse<InscriptionStats>>(
-    `/ordinals/v1/stats/inscriptions`,
+    `/v1/stats/inscriptions`,
     `hiro:stats`,
     TTL.COLLECTION_INFO,
   );
