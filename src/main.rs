@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use std::io::BufRead;
 use tracing::info;
 
-const HIRO_BASE: &str = "https://api.hiro.so";
+const HIRO_BASE: &str = "https://api.secretkeylabs.io";
 
 struct ApiClient {
     client: reqwest::Client,
@@ -24,7 +24,7 @@ impl ApiClient {
         let url = format!("{HIRO_BASE}{path}");
         let mut req = self.client.get(&url).header("Accept", "application/json");
         if let Some(ref key) = self.hiro_key {
-            req = req.header("x-hiro-api-key", key.as_str());
+            req = req.header("x-api-key", key.as_str());
         }
         let resp = req.send().await.map_err(|e| format!("Hiro error: {e}"))?;
         if !resp.status().is_success() {
@@ -92,61 +92,61 @@ async fn call_tool(api: &ApiClient, name: &str, args: &Value) -> Result<Value, S
     match name {
         "get_inscription" => {
             let id = args["id"].as_str().ok_or("id required")?;
-            api.hiro(&format!("/ordinals/v1/inscriptions/{}", enc(id))).await
+            api.hiro(&format!("/v1/inscriptions/{}", enc(id))).await
         }
         "search_inscriptions" => {
             let q = qs(args, &[("address","address"),("mime_type","mime_type"),("rarity","rarity"),("from_block","from_block_height"),("to_block","to_block_height"),("from_number","from_number"),("to_number","to_number")]);
-            api.hiro(&format!("/ordinals/v1/inscriptions?{q}")).await
+            api.hiro(&format!("/v1/inscriptions?{q}")).await
         }
         "get_inscription_content" => {
             let id = args["id"].as_str().ok_or("id required")?;
             // Return metadata about content; actual binary content needs special handling
-            let meta = api.hiro(&format!("/ordinals/v1/inscriptions/{}", enc(id))).await?;
-            Ok(json!({"inscription_id": id, "content_type": meta["content_type"], "content_length": meta["content_length"], "content_url": format!("{HIRO_BASE}/ordinals/v1/inscriptions/{}/content", enc(id))}))
+            let meta = api.hiro(&format!("/v1/inscriptions/{}", enc(id))).await?;
+            Ok(json!({"inscription_id": id, "content_type": meta["content_type"], "content_length": meta["content_length"], "content_url": format!("{HIRO_BASE}/v1/inscriptions/{}/content", enc(id))}))
         }
         "get_inscription_transfers" => {
             let id = args["id"].as_str().ok_or("id required")?;
             let offset = args["offset"].as_u64().unwrap_or(0);
             let limit = args["limit"].as_u64().unwrap_or(20);
-            api.hiro(&format!("/ordinals/v1/inscriptions/{}/transfers?offset={offset}&limit={limit}", enc(id))).await
+            api.hiro(&format!("/v1/inscriptions/{}/activity?offset={offset}&limit={limit}", enc(id))).await
         }
         "get_inscription_traits" => {
             let id = args["id"].as_str().ok_or("id required")?;
-            api.hiro(&format!("/ordinals/v1/inscriptions/{}", enc(id))).await
+            api.hiro(&format!("/v1/inscriptions/{}", enc(id))).await
         }
         "get_address_inscriptions" => {
             let addr = args["address"].as_str().ok_or("address required")?;
             let offset = args["offset"].as_u64().unwrap_or(0);
             let limit = args["limit"].as_u64().unwrap_or(20);
-            api.hiro(&format!("/ordinals/v1/inscriptions?address={}&offset={offset}&limit={limit}", enc(addr))).await
+            api.hiro(&format!("/v1/ordinals/address/{}/inscriptions?offset={offset}&limit={limit}", enc(addr))).await
         }
         "get_brc20_balances" => {
             let addr = args["address"].as_str().ok_or("address required")?;
             let offset = args["offset"].as_u64().unwrap_or(0);
             let limit = args["limit"].as_u64().unwrap_or(20);
-            api.hiro(&format!("/ordinals/v1/brc-20/balances/{}?offset={offset}&limit={limit}", enc(addr))).await
+            api.hiro(&format!("/v1/ordinals/address/{}/brc20?offset={offset}&limit={limit}", enc(addr))).await
         }
         "get_rune_balances" => {
             let addr = args["address"].as_str().ok_or("address required")?;
             let offset = args["offset"].as_u64().unwrap_or(0);
             let limit = args["limit"].as_u64().unwrap_or(20);
-            api.hiro(&format!("/runes/v1/addresses/{}/balances?offset={offset}&limit={limit}", enc(addr))).await
+            api.hiro(&format!("/v1/ordinals/address/{}/runes?offset={offset}&limit={limit}", enc(addr))).await
         }
         "get_address_rare_sats" => {
             let addr = args["address"].as_str().ok_or("address required")?;
-            api.hiro(&format!("/ordinals/v1/inscriptions?address={}&rarity=uncommon,rare,epic,legendary,mythic&limit=60", enc(addr))).await
+            api.hiro(&format!("/v1/inscriptions?address={}&rarity=uncommon,rare,epic,legendary,mythic&limit=60", enc(addr))).await
         }
         "get_sat_info" => {
             let ordinal = args["ordinal"].as_str().ok_or("ordinal required")?;
-            api.hiro(&format!("/ordinals/v1/sats/{}", enc(ordinal))).await
+            api.hiro(&format!("/v1/sats/{}", enc(ordinal))).await
         }
         "get_brc20_token" => {
             let ticker = args["ticker"].as_str().ok_or("ticker required")?;
-            api.hiro(&format!("/ordinals/v1/brc-20/tokens/{}", enc(ticker))).await
+            api.hiro(&format!("/v1/brc20/ticker/{}", enc(ticker))).await
         }
         "get_rune_info" => {
             let name_str = args["name"].as_str().ok_or("name required")?;
-            api.hiro(&format!("/runes/v1/etchings/{}", enc(name_str))).await
+            api.hiro(&format!("/v1/runes/{}", enc(name_str))).await
         }
         "get_collection_info" | "get_collection_inscriptions" | "get_collection_listings" => {
             let slug = args["slug"].as_str().ok_or("slug required")?;
@@ -154,44 +154,44 @@ async fn call_tool(api: &ApiClient, name: &str, args: &Value) -> Result<Value, S
         }
         "get_rune_market_info" => {
             let name_str = args["name"].as_str().ok_or("name required")?;
-            let info = api.hiro(&format!("/runes/v1/etchings/{}", enc(name_str))).await?;
+            let info = api.hiro(&format!("/v1/runes/{}", enc(name_str))).await?;
             Ok(json!({"rune": info, "market_url": format!("https://magiceden.io/runes/{}", name_str)}))
         }
         "list_runes" => {
             let offset = args["offset"].as_u64().unwrap_or(0);
             let limit = args["limit"].as_u64().unwrap_or(20);
-            api.hiro(&format!("/runes/v1/etchings?offset={offset}&limit={limit}")).await
+            api.hiro(&format!("/v1/runes?offset={offset}&limit={limit}")).await
         }
         "get_rune_holders" => {
             let name_str = args["name"].as_str().ok_or("name required")?;
             let offset = args["offset"].as_u64().unwrap_or(0);
             let limit = args["limit"].as_u64().unwrap_or(20);
-            api.hiro(&format!("/runes/v1/etchings/{}/holders?offset={offset}&limit={limit}", enc(name_str))).await
+            api.hiro(&format!("/v1/runes/{}/holders?offset={offset}&limit={limit}", enc(name_str))).await
         }
         "get_rune_activity" => {
             let name_str = args["name"].as_str().ok_or("name required")?;
             let offset = args["offset"].as_u64().unwrap_or(0);
             let limit = args["limit"].as_u64().unwrap_or(20);
-            api.hiro(&format!("/runes/v1/etchings/{}/activity?offset={offset}&limit={limit}", enc(name_str))).await
+            api.hiro(&format!("/v1/runes/{}/activity?offset={offset}&limit={limit}", enc(name_str))).await
         }
         "get_rune_unlock_date" => {
             let name_str = args["name"].as_str().ok_or("name required")?;
-            let info = api.hiro(&format!("/runes/v1/etchings/{}", enc(name_str))).await?;
+            let info = api.hiro(&format!("/v1/runes/{}", enc(name_str))).await?;
             Ok(json!({"rune": name_str, "mint_terms": info["mint_terms"], "supply": info["supply"]}))
         }
         "get_brc20_activity" => {
             let q = qs(args, &[("ticker","ticker"),("address","address"),("operation","operation")]);
-            api.hiro(&format!("/ordinals/v1/brc-20/activity?{q}")).await
+            api.hiro(&format!("/v1/brc20/activity?{q}")).await
         }
         "get_brc20_holders" => {
             let ticker = args["ticker"].as_str().ok_or("ticker required")?;
             let offset = args["offset"].as_u64().unwrap_or(0);
             let limit = args["limit"].as_u64().unwrap_or(20);
-            api.hiro(&format!("/ordinals/v1/brc-20/tokens/{}/holders?offset={offset}&limit={limit}", enc(ticker))).await
+            api.hiro(&format!("/v1/brc20/ticker/{}/holders?offset={offset}&limit={limit}", enc(ticker))).await
         }
         "get_tx_inscriptions" => {
             let txid = args["txid"].as_str().ok_or("txid required")?;
-            api.hiro(&format!("/ordinals/v1/inscriptions?genesis_tx_id={}", enc(txid))).await
+            api.hiro(&format!("/v1/inscriptions?genesis_tx_id={}", enc(txid))).await
         }
         _ => Err(format!("Unknown tool: {name}")),
     }

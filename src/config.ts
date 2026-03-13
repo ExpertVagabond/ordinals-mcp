@@ -7,7 +7,7 @@ export interface ApiConfig {
 export const config = {
   hiro: {
     key: process.env.HIRO_API_KEY,
-    baseUrl: "https://api.hiro.so",
+    baseUrl: "https://api.secretkeylabs.io",
     maxRpm: process.env.HIRO_API_KEY ? 500 : 50,
   } satisfies ApiConfig,
 
