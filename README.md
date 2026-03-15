@@ -1,22 +1,19 @@
-# ordinals-mcp
+# :link: ordinals-mcp
 
 [![npm version](https://img.shields.io/npm/v/ordinals-mcp.svg)](https://www.npmjs.com/package/ordinals-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/ExpertVagabond/ordinals-mcp)](https://github.com/ExpertVagabond/ordinals-mcp/stargazers)
 [![Website](https://img.shields.io/badge/website-ordinals--mcp.pages.dev-f7931a)](https://ordinals-mcp.pages.dev)
 
-<p align="center">
-  <img src="logo.png" alt="ordinals-mcp" width="140" height="140" style="border-radius: 50%;">
-</p>
+**Bitcoin Ordinals MCP Server** -- multi-API access to inscriptions, runes, BRC-20 tokens, collections, marketplace data, and rare sats via [Model Context Protocol](https://modelcontextprotocol.io). Aggregates data from Hiro, Ordiscan, and Magic Eden with built-in caching and rate limiting.
 
-Bitcoin Ordinals MCP Server — multi-API access to inscriptions, runes, BRC-20 tokens, collections, marketplace data, and rare sats.
+## Install
 
-A [Model Context Protocol](https://modelcontextprotocol.io/) server that gives AI models comprehensive access to the Bitcoin Ordinals ecosystem. Aggregates data from multiple APIs with built-in caching and rate limiting.
+```bash
+npx ordinals-mcp@latest
+```
 
-## Quick Start
-
-### Claude Desktop / Claude Code
-
-Add to your MCP config:
+Add to your MCP config (Claude Desktop / Claude Code):
 
 ```json
 {
@@ -33,129 +30,87 @@ Add to your MCP config:
 }
 ```
 
-### Get API Keys (free)
+### API Keys (free)
 
-- **Hiro** (primary, 500 RPM): [platform.hiro.so](https://platform.hiro.so)
-- **Ordiscan** (secondary): [ordiscan.com/docs/api](https://ordiscan.com/docs/api)
-- **Magic Eden** (marketplace, optional): [docs.magiceden.io](https://docs.magiceden.io)
+| Provider | Rate Limit | Link |
+|----------|-----------|------|
+| **Hiro** (primary) | 500 RPM | [platform.hiro.so](https://platform.hiro.so) |
+| **Ordiscan** (fallback) | -- | [ordiscan.com/docs/api](https://ordiscan.com/docs/api) |
+| **Magic Eden** (optional) | -- | [docs.magiceden.io](https://docs.magiceden.io) |
 
 At least one of `HIRO_API_KEY` or `ORDISCAN_API_KEY` is required.
 
 ## 24 Tools
 
-### Inscriptions
+| Category | Tools |
+|----------|-------|
+| **Inscriptions** (5) | `get_inscription`, `search_inscriptions`, `get_inscription_content`, `get_inscription_transfers`, `get_inscription_traits` |
+| **Address** (4) | `get_address_inscriptions`, `get_brc20_balances`, `get_rune_balances`, `get_address_rare_sats` |
+| **Runes** (6) | `get_rune_info`, `list_runes`, `get_rune_holders`, `get_rune_activity`, `get_rune_market_info`, `get_rune_unlock_date` |
+| **BRC-20** (3) | `get_brc20_token`, `get_brc20_activity`, `get_brc20_holders` |
+| **Collections** (3) | `get_collection_info`, `get_collection_inscriptions`, `get_collection_listings` |
+| **Sats & Txs** (3) | `get_sat_info`, `get_tx_inscriptions`, `get_tx_runes` |
 
-| Tool | Description |
-|------|-------------|
-| `get_inscription` | Get inscription metadata by ID or number |
-| `search_inscriptions` | Search/filter inscriptions (address, mime type, rarity, block range) |
-| `get_inscription_content` | Get raw inscription content (text, images, etc.) |
-| `get_inscription_transfers` | Get transfer history for an inscription |
-| `get_inscription_traits` | Get trait info for collection inscriptions |
+## Usage Example
 
-### Address Lookups
+```
+You: What runes does bc1q...abc hold?
+Claude: [calls get_rune_balances] This address holds 3 runes:
+  - DOG*GO*TO*THE*MOON: 1,500,000
+  - RSIC: 21,000
+  - PUPS: 500
 
-| Tool | Description |
-|------|-------------|
-| `get_address_inscriptions` | All inscriptions owned by an address |
-| `get_brc20_balances` | BRC-20 token balances for an address |
-| `get_rune_balances` | Rune balances for an address |
-| `get_address_rare_sats` | Rare satoshis held by an address |
-
-### Runes
-
-| Tool | Description |
-|------|-------------|
-| `get_rune_info` | Rune details (symbol, supply, mint terms) |
-| `list_runes` | List all runes with pagination |
-| `get_rune_holders` | Top holders of a rune |
-| `get_rune_activity` | Recent mints, transfers, burns |
-| `get_rune_market_info` | Price, market cap, 24h volume |
-| `get_rune_unlock_date` | When a rune name becomes available |
-
-### BRC-20
-
-| Tool | Description |
-|------|-------------|
-| `get_brc20_token` | Token details (supply, mint limit, decimals) |
-| `get_brc20_activity` | Deploy, mint, transfer events |
-| `get_brc20_holders` | Top holders of a BRC-20 token |
-
-### Collections & Marketplace
-
-| Tool | Description |
-|------|-------------|
-| `get_collection_info` | Collection stats, floor price, volume |
-| `get_collection_inscriptions` | List inscriptions in a collection |
-| `get_collection_listings` | Active Magic Eden marketplace listings |
-
-### Satoshis & Transactions
-
-| Tool | Description |
-|------|-------------|
-| `get_sat_info` | Sat rarity, epoch, inscriptions |
-| `get_tx_inscriptions` | Inscriptions in a transaction |
-| `get_tx_runes` | Rune transfers in a transaction |
+You: Show me the floor price for the Bitcoin Puppets collection
+Claude: [calls get_collection_info] Bitcoin Puppets floor: 0.12 BTC ($7,200), 24h volume: 2.3 BTC
+```
 
 ## Architecture
 
-### Multi-API with Fallback
-
 ```
-Request -> Cache (TTL + ETag)
-  |-> HIT: return cached
-  |-> MISS:
-      |-> Hiro (primary, 500 RPM)
-      |   |-> Success: cache + return
-      |   |-> Rate limited:
-      |       |-> Ordiscan (fallback)
-      |       |-> Stale cache (last resort)
-      |-> Magic Eden (marketplace-specific)
+Request --> Cache (TTL + ETag)
+  |--> HIT: return cached
+  |--> MISS:
+      |--> Hiro (primary, 500 RPM)
+      |     |--> Success: cache + return
+      |     |--> Rate limited: Ordiscan (fallback) --> Stale cache (last resort)
+      |--> Magic Eden (marketplace-specific)
 ```
 
-### Built-in Rate Limiting
-
-Per-API token bucket rate limiters with 80% safety margin. Automatic wait-and-retry when approaching limits.
-
-### Intelligent Caching
-
-| Data Type | TTL |
-|-----------|-----|
-| Sat rarity | 24 hours |
-| Inscription metadata | 5 minutes |
-| Rune etching info | 5 minutes |
-| Collection info | 2 minutes |
-| Balances | 1 minute |
-| Marketplace listings | 30 seconds |
+**Intelligent Caching**: Sat rarity (24h), inscription metadata (5m), collection info (2m), balances (1m), marketplace listings (30s).
 
 ## Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `HIRO_API_KEY` | Yes* | Hiro API key (500 RPM) |
+| `HIRO_API_KEY` | Yes* | Hiro API key |
 | `ORDISCAN_API_KEY` | Yes* | Ordiscan API key |
 | `MAGIC_EDEN_API_KEY` | No | Higher marketplace rate limits |
 | `CACHE_TTL_SECONDS` | No | Default cache TTL (default: 300) |
-| `RATE_LIMIT_BUFFER` | No | Rate limit safety margin (default: 0.8) |
-
-*At least one API key is required.
 
 ## Development
 
 ```bash
-npm install
-npm run build          # TypeScript + esbuild bundle
-npm run watch          # TypeScript watch mode
-npm run inspector      # MCP Inspector for testing
+npm install && npm run build
+npm run inspector    # MCP Inspector for testing
 ```
+
+## Related Projects
+
+- [cpanel-mcp](https://github.com/ExpertVagabond/cpanel-mcp) -- cPanel hosting MCP server
+- [solana-mcp-server-app](https://github.com/ExpertVagabond/solana-mcp-server-app) -- Solana wallet + DeFi MCP
+- [coldstar-colosseum](https://github.com/ExpertVagabond/coldstar-colosseum) -- Air-gapped Solana vault
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/my-feature`)
+3. Commit your changes
+4. Open a Pull Request
 
 ## Links
 
-- [Website](https://ordinals-mcp.pages.dev)
-- [npm](https://www.npmjs.com/package/ordinals-mcp)
-- [GitHub](https://github.com/ExpertVagabond/ordinals-mcp)
-- [Setup Gist](https://gist.github.com/ExpertVagabond/6448a5c0a1c8a71bee3e8d598cb7e17e)
+- [Website](https://ordinals-mcp.pages.dev) | [npm](https://www.npmjs.com/package/ordinals-mcp) | [Setup Gist](https://gist.github.com/ExpertVagabond/6448a5c0a1c8a71bee3e8d598cb7e17e)
 
 ## License
 
-MIT
+MIT -- [Purple Squirrel Media](https://github.com/ExpertVagabond)
