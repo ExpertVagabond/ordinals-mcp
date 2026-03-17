@@ -15,7 +15,8 @@
     "prepublishOnly": "npm run build",
     "watch": "tsc --watch",
     "start:http": "node build/http-server.js",
-    "inspector": "npx @modelcontextprotocol/inspector build/index.js"
+    "inspector": "npx @modelcontextprotocol/inspector build/index.js",
+    "test": "vitest run"
   },
   "repository": {
     "type": "git",
@@ -49,7 +50,8 @@
   "devDependencies": {
     "@types/node": "^20.11.24",
     "esbuild": "^0.25.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.0"
   },
   "engines": {
     "node": ">=18.0.0"
