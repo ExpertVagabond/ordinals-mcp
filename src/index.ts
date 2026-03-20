@@ -81,6 +81,33 @@ function logOperation(action: string, success: boolean, durationMs?: number): vo
   console.error(`[audit] ${JSON.stringify(entry)}`);
 }
 
+/** Validate a Bitcoin address format. */
+function validateBitcoinAddress(addr: unknown, fieldName: string): string {
+  const s = sanitizeString(addr, fieldName);
+  if (!BITCOIN_ADDRESS_RE.test(s)) {
+    throw new Error(`${fieldName} is not a valid Bitcoin address`);
+  }
+  return s;
+}
+
+/** Validate an inscription ID (txid + 'i' + index). */
+function validateInscriptionId(id: unknown, fieldName: string): string {
+  const s = sanitizeString(id, fieldName);
+  if (!INSCRIPTION_ID_RE.test(s)) {
+    throw new Error(`${fieldName} is not a valid inscription ID`);
+  }
+  return s;
+}
+
+/** Validate a transaction ID (64-char hex). */
+function validateTxid(id: unknown, fieldName: string): string {
+  const s = sanitizeString(id, fieldName);
+  if (!TXID_RE.test(s)) {
+    throw new Error(`${fieldName} is not a valid transaction ID`);
+  }
+  return s;
+}
+
 // Tier 1 — Core
 import { getInscription } from "./tools/inscriptions/get.js";
 import { searchInscriptions } from "./tools/inscriptions/search.js";
