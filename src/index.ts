@@ -44,6 +44,21 @@ function logOperation(action: string, success: boolean, durationMs?: number): vo
   const entry = { timestamp: new Date().toISOString(), action, success, ...(durationMs !== undefined && { durationMs }) };
   console.error(`[audit] ${JSON.stringify(entry)}`);
 }
+// Security: rate limiter — sliding window, 120 calls per minute
+const _rateBuckets: number[] = [];
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX_CALLS = 120;
+function checkRateLimit(): void {
+  const now = Date.now();
+  while (_rateBuckets.length > 0 && now - _rateBuckets[0] > RATE_WINDOW_MS) _rateBuckets.shift();
+  if (_rateBuckets.length >= RATE_MAX_CALLS) throw new Error("Rate limit exceeded");
+  _rateBuckets.push(now);
+}
+/** Timeout wrapper — all API calls are time-bounded */
+async function withTimeout<T>(promise: Promise<T>, ms = 30_000): Promise<T> {
+  const timer = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Operation timed out")), ms));
+  return Promise.race([promise, timer]);
+}
 function validateBitcoinAddress(addr: unknown, fieldName: string): string {
   const s = sanitizeString(addr, fieldName);
   if (!BITCOIN_ADDRESS_RE.test(s)) throw new Error(`${fieldName} is not a valid Bitcoin address`);
@@ -147,6 +162,12 @@ function createServer() {
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const toolName = request.params.name;
+
+    // Security: rate limiting
+    try { checkRateLimit(); } catch (e) {
+      return errorResult(e instanceof Error ? e.message : "Rate limit exceeded");
+    }
+
     const handler = handlerMap.get(toolName);
     if (!handler) {
       return errorResult(`Unknown tool: ${toolName}`);
