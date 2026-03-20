@@ -5,7 +5,7 @@ import { textResult, errorResult } from "../../types.js";
 import * as ordiscan from "../../clients/ordiscan.js";
 
 const schema = z.object({
-  name: z.string().describe("Rune name (e.g., UNCOMMON•GOODS or UNCOMMONGOODS)"),
+  name: z.string().min(1).max(128).describe("Rune name (e.g., UNCOMMON•GOODS or UNCOMMONGOODS)"),
 });
 
 export const getRuneMarketInfo: McpAction = {

@@ -5,9 +5,9 @@ import { textResult, errorResult } from "../../types.js";
 import * as ordiscan from "../../clients/ordiscan.js";
 
 const schema = z.object({
-  slug: z.string().describe("Collection slug/symbol"),
-  offset: z.number().optional().default(0).describe("Pagination offset"),
-  limit: z.number().optional().default(20).describe("Results per page"),
+  slug: z.string().min(1).max(128).describe("Collection slug/symbol"),
+  offset: z.number().int().min(0).optional().default(0).describe("Pagination offset"),
+  limit: z.number().int().min(1).max(60).optional().default(20).describe("Results per page"),
 });
 
 export const getCollectionInscriptions: McpAction = {

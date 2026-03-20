@@ -5,7 +5,7 @@ import { textResult, errorResult } from "../../types.js";
 import * as ordiscan from "../../clients/ordiscan.js";
 
 const schema = z.object({
-  slug: z.string().describe("Collection slug/symbol (e.g., bitcoin-puppets, nodemonkes)"),
+  slug: z.string().min(1).max(128).describe("Collection slug/symbol (e.g., bitcoin-puppets, nodemonkes)"),
 });
 
 export const getCollectionInfo: McpAction = {

@@ -5,7 +5,7 @@ import { textResult, errorResult } from "../../types.js";
 import * as hiro from "../../clients/hiro.js";
 
 const schema = z.object({
-  ordinal: z.string().describe("Satoshi ordinal number (e.g., 1857578125803250)"),
+  ordinal: z.string().min(1).max(64).describe("Satoshi ordinal number (e.g., 1857578125803250)"),
 });
 
 export const getSatInfo: McpAction = {

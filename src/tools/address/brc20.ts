@@ -7,9 +7,9 @@ import * as ordiscan from "../../clients/ordiscan.js";
 import { config } from "../../config.js";
 
 const schema = z.object({
-  address: z.string().describe("Bitcoin address"),
-  offset: z.number().optional().default(0).describe("Pagination offset"),
-  limit: z.number().optional().default(20).describe("Results per page"),
+  address: z.string().min(1).max(128).describe("Bitcoin address"),
+  offset: z.number().int().min(0).optional().default(0).describe("Pagination offset"),
+  limit: z.number().int().min(1).max(60).optional().default(20).describe("Results per page"),
 });
 
 export const getBrc20Balances: McpAction = {

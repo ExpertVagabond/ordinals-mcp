@@ -5,7 +5,7 @@ import { textResult, errorResult } from "../../types.js";
 import * as ordiscan from "../../clients/ordiscan.js";
 
 const schema = z.object({
-  id: z.string().describe("Inscription ID ({txid}i{index})"),
+  id: z.string().min(1).max(256).describe("Inscription ID ({txid}i{index})"),
 });
 
 export const getInscriptionTraits: McpAction = {

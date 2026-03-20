@@ -5,7 +5,7 @@ import { textResult, errorResult } from "../../types.js";
 import * as hiro from "../../clients/hiro.js";
 
 const schema = z.object({
-  ticker: z.string().describe("BRC-20 token ticker (e.g., ordi, sats)"),
+  ticker: z.string().min(1).max(64).describe("BRC-20 token ticker (e.g., ordi, sats)"),
 });
 
 export const getBrc20Token: McpAction = {

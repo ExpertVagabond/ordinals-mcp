@@ -5,9 +5,9 @@ import { textResult, errorResult } from "../../types.js";
 import * as magicEden from "../../clients/magic-eden.js";
 
 const schema = z.object({
-  collection_symbol: z.string().describe("Collection symbol on Magic Eden"),
-  offset: z.number().optional().default(0).describe("Pagination offset"),
-  limit: z.number().optional().default(20).describe("Results per page"),
+  collection_symbol: z.string().min(1).max(128).describe("Collection symbol on Magic Eden"),
+  offset: z.number().int().min(0).optional().default(0).describe("Pagination offset"),
+  limit: z.number().int().min(1).max(60).optional().default(20).describe("Results per page"),
 });
 
 export const getCollectionListings: McpAction = {

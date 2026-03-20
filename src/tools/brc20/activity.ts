@@ -5,14 +5,14 @@ import { textResult, errorResult } from "../../types.js";
 import * as hiro from "../../clients/hiro.js";
 
 const schema = z.object({
-  ticker: z.string().optional().describe("Filter by BRC-20 ticker"),
-  address: z.string().optional().describe("Filter by Bitcoin address"),
+  ticker: z.string().max(64).optional().describe("Filter by BRC-20 ticker"),
+  address: z.string().max(128).optional().describe("Filter by Bitcoin address"),
   operation: z
     .enum(["deploy", "mint", "transfer", "transfer_send"])
     .optional()
     .describe("Filter by operation type"),
-  offset: z.number().optional().default(0).describe("Pagination offset"),
-  limit: z.number().optional().default(20).describe("Results per page"),
+  offset: z.number().int().min(0).optional().default(0).describe("Pagination offset"),
+  limit: z.number().int().min(1).max(60).optional().default(20).describe("Results per page"),
 });
 
 export const getBrc20Activity: McpAction = {
