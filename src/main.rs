@@ -7,6 +7,56 @@ use tracing::info;
 
 const HIRO_BASE: &str = "https://api.secretkeylabs.io";
 
+// ── Security Constants ─────────────────────────────────────────────────
+
+/// Maximum response body from upstream APIs (bytes).
+const MAX_RESPONSE_BODY: usize = 10 * 1024 * 1024; // 10 MB
+
+/// Maximum length for user-supplied string parameters.
+const MAX_PARAM_LEN: usize = 512;
+
+/// Maximum pagination limit per request.
+const MAX_PAGE_LIMIT: u64 = 100;
+
+/// Redact sensitive values from error messages.
+fn redact_error(msg: &str) -> String {
+    let mut output = msg.to_string();
+    for env_key in &["HIRO_API_KEY", "ORDISCAN_API_KEY"] {
+        if let Ok(val) = std::env::var(env_key) {
+            if val.len() > 4 {
+                output = output.replace(&val, "[REDACTED]");
+            }
+        }
+    }
+    output
+}
+
+/// Validate a user-supplied string parameter (ID, address, ticker, etc.)
+fn validate_param(value: &str, field: &str) -> Result<(), String> {
+    if value.is_empty() {
+        return Err(format!("{field} must not be empty"));
+    }
+    if value.len() > MAX_PARAM_LEN {
+        return Err(format!("{field} exceeds maximum length of {MAX_PARAM_LEN}"));
+    }
+    if value.contains('\0') {
+        return Err(format!("{field} contains null bytes"));
+    }
+    // Block path traversal
+    if value.contains("..") || value.starts_with('/') {
+        return Err(format!("{field} contains invalid path characters"));
+    }
+    Ok(())
+}
+
+/// Clamp a pagination limit to the safe maximum.
+fn safe_limit(args: &Value) -> u64 {
+    args["limit"]
+        .as_u64()
+        .unwrap_or(20)
+        .min(MAX_PAGE_LIMIT)
+}
+
 struct ApiClient {
     client: reqwest::Client,
     hiro_key: Option<String>,
@@ -15,7 +65,10 @@ struct ApiClient {
 impl ApiClient {
     fn new() -> Self {
         Self {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(30))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
             hiro_key: std::env::var("HIRO_API_KEY").ok(),
         }
     }
@@ -26,11 +79,16 @@ impl ApiClient {
         if let Some(ref key) = self.hiro_key {
             req = req.header("x-api-key", key.as_str());
         }
-        let resp = req.send().await.map_err(|e| format!("Hiro error: {e}"))?;
+        let resp = req.send().await.map_err(|e| redact_error(&format!("Hiro error: {e}")))?;
         if !resp.status().is_success() {
             return Err(format!("Hiro API {}: {}", resp.status(), path));
         }
-        resp.json().await.map_err(|e| format!("Parse error: {e}"))
+        // Limit response body size
+        let bytes = resp.bytes().await.map_err(|e| format!("Read error: {e}"))?;
+        if bytes.len() > MAX_RESPONSE_BODY {
+            return Err(format!("Response too large: {} bytes", bytes.len()));
+        }
+        serde_json::from_slice(&bytes).map_err(|e| format!("Parse error: {e}"))
     }
 }
 
