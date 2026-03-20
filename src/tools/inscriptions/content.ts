@@ -5,7 +5,7 @@ import { textResult, errorResult } from "../../types.js";
 import * as hiro from "../../clients/hiro.js";
 
 const schema = z.object({
-  id: z.string().describe("Inscription ID ({txid}i{index}) or inscription number"),
+  id: z.string().min(1).max(256).describe("Inscription ID ({txid}i{index}) or inscription number"),
 });
 
 export const getInscriptionContent: McpAction = {

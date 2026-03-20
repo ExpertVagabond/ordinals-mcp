@@ -5,8 +5,8 @@ import { textResult, errorResult } from "../../types.js";
 import * as hiro from "../../clients/hiro.js";
 
 const schema = z.object({
-  address: z.string().optional().describe("Filter by owner Bitcoin address"),
-  mime_type: z.string().optional().describe("Filter by MIME type (e.g., image/png, text/plain)"),
+  address: z.string().max(128).optional().describe("Filter by owner Bitcoin address"),
+  mime_type: z.string().max(128).optional().describe("Filter by MIME type (e.g., image/png, text/plain)"),
   rarity: z
     .enum(["common", "uncommon", "rare", "epic", "legendary", "mythic"])
     .optional()
@@ -17,8 +17,8 @@ const schema = z.object({
   to_number: z.number().optional().describe("End inscription number"),
   recursive: z.boolean().optional().describe("Filter recursive inscriptions"),
   cursed: z.boolean().optional().describe("Filter cursed inscriptions"),
-  offset: z.number().optional().default(0).describe("Pagination offset"),
-  limit: z.number().optional().default(20).describe("Results per page (max 60)"),
+  offset: z.number().int().min(0).optional().default(0).describe("Pagination offset"),
+  limit: z.number().int().min(1).max(60).optional().default(20).describe("Results per page (max 60)"),
 });
 
 export const searchInscriptions: McpAction = {

@@ -7,7 +7,7 @@ import * as ordiscan from "../../clients/ordiscan.js";
 import { config } from "../../config.js";
 
 const schema = z.object({
-  name: z.string().describe("Rune name (e.g., UNCOMMON•GOODS or UNCOMMONGOODS)"),
+  name: z.string().min(1).max(128).describe("Rune name (e.g., UNCOMMON•GOODS or UNCOMMONGOODS)"),
 });
 
 export const getRuneInfo: McpAction = {

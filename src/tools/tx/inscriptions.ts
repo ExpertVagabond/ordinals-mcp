@@ -5,7 +5,7 @@ import { textResult, errorResult } from "../../types.js";
 import * as ordiscan from "../../clients/ordiscan.js";
 
 const schema = z.object({
-  txid: z.string().describe("Bitcoin transaction ID"),
+  txid: z.string().min(1).max(128).describe("Bitcoin transaction ID"),
 });
 
 export const getTxInscriptions: McpAction = {
