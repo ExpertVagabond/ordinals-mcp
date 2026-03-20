@@ -10,6 +10,49 @@
 
 import express, { Request, Response, NextFunction } from "express";
 import * as dotenv from "dotenv";
+
+// ── Security Constants ──────────────────────────────────────────────────
+const MAX_REQUEST_BODY = 1 * 1024 * 1024; // 1 MB
+const MAX_TOOL_NAME_LEN = 64;
+const MAX_PARAM_VALUE_LEN = 1024;
+const SAFE_TOOL_NAME_RE = /^[a-z][a-z0-9_]{0,63}$/;
+
+/** Credential patterns that must never appear in responses. */
+const CREDENTIAL_RE =
+  /(?:STRIPE_SECRET_KEY|STRIPE_PRO_PRICE_ID|STRIPE_ENTERPRISE_PRICE_ID|sk_live_|sk_test_)[^\s"']*/gi;
+
+/** Strip secrets from error messages before sending to clients. */
+function redactError(msg: string): string {
+  let safe = msg.replace(CREDENTIAL_RE, "[REDACTED]");
+  // Redact env var values
+  for (const key of [
+    "STRIPE_SECRET_KEY",
+    "HIRO_API_KEY",
+    "ORDISCAN_API_KEY",
+  ]) {
+    const val = process.env[key];
+    if (val && val.length > 4) {
+      safe = safe.replaceAll(val, "[REDACTED]");
+    }
+  }
+  return safe;
+}
+
+/** Validate tool arguments — reject null bytes, oversized values. */
+function validateArgs(args: Record<string, unknown>): void {
+  for (const [key, val] of Object.entries(args)) {
+    if (typeof val === "string") {
+      if (val.includes("\0")) {
+        throw new Error(`Parameter '${key}' contains null bytes`);
+      }
+      if (val.length > MAX_PARAM_VALUE_LEN) {
+        throw new Error(
+          `Parameter '${key}' exceeds max length (${val.length} > ${MAX_PARAM_VALUE_LEN})`,
+        );
+      }
+    }
+  }
+}
 import {
   validateApiKey,
   checkUsageLimit,
@@ -51,7 +94,7 @@ import { getTxRunes } from "./tools/tx/runes.js";
 dotenv.config();
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: MAX_REQUEST_BODY }));
 
 const PORT = process.env.PORT || 3002;
 const BASE_URL =
