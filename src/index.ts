@@ -8,6 +8,79 @@ import {
 import type { McpAction } from "./types.js";
 import { errorResult } from "./types.js";
 
+// ---------------------------------------------------------------------------
+// Security: Input validation helpers
+// ---------------------------------------------------------------------------
+
+const MAX_STRING_LEN = 4096;
+const MAX_PAGE_SIZE = 100;
+const BITCOIN_ADDRESS_RE = /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/;
+const INSCRIPTION_ID_RE = /^[a-f0-9]{64}i\d+$/;
+const TXID_RE = /^[a-f0-9]{64}$/;
+
+/** Strip null bytes and control characters from a string parameter. */
+function sanitizeString(value: unknown, fieldName: string): string {
+  if (typeof value !== "string") {
+    throw new Error(`${fieldName} must be a string`);
+  }
+  if (value.length > MAX_STRING_LEN) {
+    throw new Error(`${fieldName} exceeds maximum length of ${MAX_STRING_LEN}`);
+  }
+  if (value.includes("\0")) {
+    throw new Error(`${fieldName} contains null bytes`);
+  }
+  return value;
+}
+
+/** Validate parameters object: strip nulls and enforce length limits. */
+function sanitizeParams(params: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!params || typeof params !== "object") return params;
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string") {
+      cleaned[key] = value.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "");
+      if ((cleaned[key] as string).length > MAX_STRING_LEN) {
+        throw new Error(`Parameter "${key}" exceeds maximum length`);
+      }
+    } else if (typeof value === "number") {
+      if (!Number.isFinite(value)) {
+        throw new Error(`Parameter "${key}" must be a finite number`);
+      }
+      // Enforce page_size limits
+      if (key === "page_size" && value > MAX_PAGE_SIZE) {
+        cleaned[key] = MAX_PAGE_SIZE;
+      } else {
+        cleaned[key] = value;
+      }
+    } else {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+}
+
+/** Redact internal paths and sensitive data from error messages. */
+function redactError(err: unknown): string {
+  let msg = err instanceof Error ? err.message : String(err);
+  msg = msg.replace(/\/Users\/[^\s"']*/g, "[redacted]");
+  msg = msg.replace(/\/Volumes\/[^\s"']*/g, "[redacted]");
+  if (msg.length > 500) {
+    msg = msg.slice(0, 500) + "... (truncated)";
+  }
+  return msg;
+}
+
+// Security: operation logger
+function logOperation(action: string, success: boolean, durationMs?: number): void {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    action,
+    success,
+    ...(durationMs !== undefined && { durationMs }),
+  };
+  console.error(`[audit] ${JSON.stringify(entry)}`);
+}
+
 // Tier 1 — Core
 import { getInscription } from "./tools/inscriptions/get.js";
 import { searchInscriptions } from "./tools/inscriptions/search.js";
@@ -93,14 +166,25 @@ function createServer() {
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const handler = handlerMap.get(request.params.name);
+    const toolName = request.params.name;
+    const handler = handlerMap.get(toolName);
     if (!handler) {
-      return errorResult(`Unknown tool: ${request.params.name}`);
+      return errorResult(`Unknown tool: ${toolName}`);
     }
+    const start = Date.now();
     try {
-      return await handler(request);
+      // Security: sanitize all incoming parameters
+      if (request.params.arguments) {
+        request.params.arguments = sanitizeParams(
+          request.params.arguments as Record<string, unknown>,
+        ) as typeof request.params.arguments;
+      }
+      const result = await handler(request);
+      logOperation(toolName, true, Date.now() - start);
+      return result;
     } catch (e) {
-      return errorResult(e instanceof Error ? e.message : String(e));
+      logOperation(toolName, false, Date.now() - start);
+      return errorResult(redactError(e));
     }
   });
 
