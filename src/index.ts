@@ -175,7 +175,7 @@ function createServer() {
 
     // Security: rate limiting
     try { checkRateLimit(); } catch (e) {
-      return errorResult(e instanceof Error ? e.message : "Rate limit exceeded");
+      return errorResult(redactError(e));
     }
 
     const handler = handlerMap.get(toolName);
@@ -216,6 +216,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error("Fatal:", e);
+  console.error("Fatal:", redactError(e));
   process.exit(1);
 });
