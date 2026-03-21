@@ -374,7 +374,7 @@ app.post(
         ...(result.isError ? { error: true } : {}),
       });
     } catch (error) {
-      console.error(`Tool ${toolName} error:`, error);
+      console.error(`Tool ${toolName} error:`, redactError(error instanceof Error ? error.message : String(error)));
       res.status(500).json({
         error: error instanceof Error ? error.message : "Internal server error",
       });
