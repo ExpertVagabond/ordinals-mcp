@@ -1,6 +1,12 @@
 // Stripe authentication and subscription management for Ordinals MCP
 import Stripe from "stripe";
 
+function sanitizeError(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  return "An unexpected error occurred";
+}
+
 // Lazy-initialize Stripe so the server can start without credentials (free tier works without Stripe)
 let _stripe: Stripe | null = null;
 function getStripe(): Stripe {
@@ -65,7 +71,7 @@ export async function validateApiKey(
 
     return { tier, limits: TIERS[tier], customerId };
   } catch (error) {
-    console.error("API key validation failed:", error);
+    console.error("API key validation failed:", sanitizeError(error));
     return null;
   }
 }
