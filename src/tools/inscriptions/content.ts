@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import type { McpAction, ToolInputSchema } from "../../types.js";
-import { textResult, errorResult } from "../../types.js";
+import { textResult, errorResult, redactError } from "../../types.js";
 import * as hiro from "../../clients/hiro.js";
 
 const schema = z.object({
@@ -21,7 +21,7 @@ export const getInscriptionContent: McpAction = {
       const { contentType, data } = await hiro.getInscriptionContent(id);
       return textResult({ content_type: contentType, data });
     } catch (e) {
-      return errorResult(e instanceof Error ? e.message : String(e));
+      return errorResult(redactError(e));
     }
   },
 };

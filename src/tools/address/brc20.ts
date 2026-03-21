@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import type { McpAction, ToolInputSchema } from "../../types.js";
-import { textResult, errorResult } from "../../types.js";
+import { textResult, errorResult, redactError } from "../../types.js";
 import * as hiro from "../../clients/hiro.js";
 import * as ordiscan from "../../clients/ordiscan.js";
 import { config } from "../../config.js";
@@ -35,7 +35,7 @@ export const getBrc20Balances: McpAction = {
         return textResult(data);
       }
     } catch (e) {
-      return errorResult(e instanceof Error ? e.message : String(e));
+      return errorResult(redactError(e));
     }
     return errorResult("No API key configured. Set HIRO_API_KEY or ORDISCAN_API_KEY.");
   },
