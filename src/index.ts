@@ -190,7 +190,7 @@ function createServer() {
           request.params.arguments as Record<string, unknown>,
         ) as typeof request.params.arguments;
       }
-      const result = await handler(request);
+      const result = await withTimeout(handler(request));
       logOperation(toolName, true, Date.now() - start);
       return result;
     } catch (e) {
