@@ -30,3 +30,12 @@ export function errorResult(message: string): CallToolResult {
     isError: true,
   };
 }
+
+/** Redact file paths and internal details from error messages. */
+export function redactError(err: unknown): string {
+  let msg = err instanceof Error ? err.message : String(err);
+  msg = msg.replace(/\/Users\/[^\s"']*/g, "[redacted]");
+  msg = msg.replace(/\/Volumes\/[^\s"']*/g, "[redacted]");
+  if (msg.length > 500) msg = msg.slice(0, 500) + "... (truncated)";
+  return msg;
+}
