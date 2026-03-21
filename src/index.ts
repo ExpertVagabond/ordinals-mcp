@@ -1,5 +1,15 @@
 // ─── Security & Validation (ordinals-mcp) ───────────────────────────
 // Bitcoin address, inscription, txid validators + sanitizers in first 80 lines.
+//
+// Security policy:
+// - All inputs validated: Bitcoin addresses (base58check), inscription IDs, txids
+// - Parameters sanitized: null bytes stripped, control characters removed, length bounded
+// - Rate limiter: sliding window, 120 calls/min prevents abuse
+// - Error redaction: file paths and internal details stripped before client response
+// - Audit logging: every tool call logged with timing and success/failure
+// - Timeout enforcement: 30s max per API call via withTimeout wrapper
+// - No hardcoded API keys — Hiro API is public, auth via env if needed
+
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
