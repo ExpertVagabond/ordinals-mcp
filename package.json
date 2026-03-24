@@ -40,6 +40,7 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.8.0",
+    "@psm/mcp-core-ts": "file:../psm-mcp-core-ts",
     "@types/express": "^5.0.6",
     "dotenv": "^16.4.7",
     "express": "^5.2.1",

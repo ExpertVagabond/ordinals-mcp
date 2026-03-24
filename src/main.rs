@@ -1,5 +1,8 @@
 #![recursion_limit = "512"]
 
+use psm_mcp_core::error::sanitize_error;
+use psm_mcp_core::filter::OutputFilter;
+use psm_mcp_core::input::validate_no_injection;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::io::BufRead;
@@ -15,10 +18,8 @@ const MAX_RESPONSE_BODY: usize = 10 * 1024 * 1024; // 10 MB
 /// Maximum length for user-supplied string parameters.
 const MAX_PARAM_LEN: usize = 512;
 
-/// Maximum pagination limit per request.
-const MAX_PAGE_LIMIT: u64 = 100;
-
 /// Redact sensitive values from error messages.
+/// Combines local env-var redaction with psm-mcp-core sanitize_error.
 fn redact_error(msg: &str) -> String {
     let mut output = msg.to_string();
     for env_key in &["HIRO_API_KEY", "ORDISCAN_API_KEY"] {
@@ -28,10 +29,12 @@ fn redact_error(msg: &str) -> String {
             }
         }
     }
-    output
+    // Additional redaction via psm-mcp-core (file paths, long tokens)
+    sanitize_error(&output, 500)
 }
 
 /// Validate a user-supplied string parameter (ID, address, ticker, etc.)
+/// Enhanced with psm-mcp-core validate_no_injection.
 fn validate_param(value: &str, field: &str) -> Result<(), String> {
     if value.is_empty() {
         return Err(format!("{field} must not be empty"));
@@ -46,16 +49,12 @@ fn validate_param(value: &str, field: &str) -> Result<(), String> {
     if value.contains("..") || value.starts_with('/') {
         return Err(format!("{field} contains invalid path characters"));
     }
+    // PSM injection check (shell metacharacters, null bytes, newlines)
+    validate_no_injection(value, field)
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
-/// Clamp a pagination limit to the safe maximum.
-fn safe_limit(args: &Value) -> u64 {
-    args["limit"]
-        .as_u64()
-        .unwrap_or(20)
-        .min(MAX_PAGE_LIMIT)
-}
 
 struct ApiClient {
     client: reqwest::Client,
@@ -94,6 +93,7 @@ impl ApiClient {
 
 #[derive(Deserialize)]
 struct JsonRpcRequest {
+    #[allow(dead_code)]
     jsonrpc: String,
     id: Option<Value>,
     method: String,
@@ -338,6 +338,7 @@ async fn main() {
         .init();
     info!("ordinals-mcp starting on stdio (23 tools)");
     let api = ApiClient::new();
+    let output_filter = OutputFilter::default();
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
     let mut line = String::new();
@@ -365,12 +366,34 @@ async fn main() {
             "tools/call" => {
                 let tn = req.params["name"].as_str().unwrap_or("");
                 let a = &req.params["arguments"];
-                match call_tool(&api, tn, a).await {
-                    Ok(r) => {
-                        json!({"jsonrpc":"2.0","id":req.id,"result":{"content":[{"type":"text","text":serde_json::to_string_pretty(&r).unwrap_or_default()}]}})
+
+                // Validate all string arguments via psm-mcp-core
+                let mut validation_err = None;
+                if let Some(obj) = a.as_object() {
+                    for (key, val) in obj {
+                        if let Some(s) = val.as_str() {
+                            if let Err(e) = validate_param(s, key) {
+                                validation_err = Some(e);
+                                break;
+                            }
+                        }
                     }
-                    Err(e) => {
-                        json!({"jsonrpc":"2.0","id":req.id,"result":{"content":[{"type":"text","text":format!("Error: {e}")}],"isError":true}})
+                }
+
+                if let Some(e) = validation_err {
+                    json!({"jsonrpc":"2.0","id":req.id,"result":{"content":[{"type":"text","text":format!("Error: {e}")}],"isError":true}})
+                } else {
+                    match call_tool(&api, tn, a).await {
+                        Ok(r) => {
+                            let raw = serde_json::to_string_pretty(&r).unwrap_or_default();
+                            // Filter output through psm-mcp-core OutputFilter (redacts secrets/PII)
+                            let filtered = output_filter.filter(&raw);
+                            json!({"jsonrpc":"2.0","id":req.id,"result":{"content":[{"type":"text","text":filtered.text}]}})
+                        }
+                        Err(e) => {
+                            let safe = redact_error(&e);
+                            json!({"jsonrpc":"2.0","id":req.id,"result":{"content":[{"type":"text","text":format!("Error: {safe}")}],"isError":true}})
+                        }
                     }
                 }
             }

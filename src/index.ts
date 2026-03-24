@@ -3,18 +3,20 @@
 //
 // Security policy:
 // - All inputs validated: Bitcoin addresses (base58check), inscription IDs, txids
-// - Parameters sanitized: null bytes stripped, control characters removed, length bounded
-// - Rate limiter: sliding window, 120 calls/min prevents abuse
-// - Error redaction: file paths and internal details stripped before client response
-// - Audit logging: every tool call logged with timing and success/failure
+// - Parameters sanitized via psm-mcp-core-ts validateNoInjection + local sanitizers
+// - Rate limiter: psm-mcp-core-ts RateLimiter, 120 calls/min prevents abuse
+// - Error redaction: psm-mcp-core-ts sanitizeError() strips paths and internal details
+// - Output filtering: psm-mcp-core-ts OutputFilter redacts secrets/PII in all responses
+// - Audit logging: psm-mcp-core-ts AuditLogger + every tool call logged with timing
 // - Timeout enforcement: 30s max per API call via withTimeout wrapper
 // - No hardcoded API keys — Hiro API is public, auth via env if needed
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { RateLimiter } from "@psm/mcp-core-ts";
 import type { McpAction } from "./types.js";
-import { errorResult } from "./types.js";
+import { errorResult, redactError, validateNoInjection, auditLog } from "./types.js";
 
 // Security constants and patterns
 const MAX_STRING_LEN = 4096;
@@ -22,6 +24,9 @@ const MAX_PAGE_SIZE = 100;
 const BITCOIN_ADDRESS_RE = /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/;
 const INSCRIPTION_ID_RE = /^[a-f0-9]{64}i\d+$/;
 const TXID_RE = /^[a-f0-9]{64}$/;
+
+// PSM rate limiter: 120 requests per 60 seconds (sliding window)
+const rateLimiter = new RateLimiter(120, 60_000);
 
 function sanitizeString(value: unknown, fieldName: string): string {
   if (typeof value !== "string") throw new Error(`${fieldName} must be a string`);
@@ -34,6 +39,8 @@ function sanitizeParams(params: Record<string, unknown> | undefined): Record<str
   const cleaned: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(params)) {
     if (typeof value === "string") {
+      // PSM injection check on all string params
+      validateNoInjection(value, key);
       cleaned[key] = value.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "");
       if ((cleaned[key] as string).length > MAX_STRING_LEN) throw new Error(`Parameter "${key}" exceeds maximum length`);
     } else if (typeof value === "number") {
@@ -43,26 +50,11 @@ function sanitizeParams(params: Record<string, unknown> | undefined): Record<str
   }
   return cleaned;
 }
-function redactError(err: unknown): string {
-  let msg = err instanceof Error ? err.message : String(err);
-  msg = msg.replace(/\/Users\/[^\s"']*/g, "[redacted]");
-  msg = msg.replace(/\/Volumes\/[^\s"']*/g, "[redacted]");
-  if (msg.length > 500) msg = msg.slice(0, 500) + "... (truncated)";
-  return msg;
-}
 function logOperation(action: string, success: boolean, durationMs?: number): void {
+  const status = success ? "TOOL_SUCCESS" : "TOOL_FAILURE";
+  auditLog.log(status, `${action} (${durationMs ?? 0}ms)`, "stdio");
   const entry = { timestamp: new Date().toISOString(), action, success, ...(durationMs !== undefined && { durationMs }) };
   console.error(`[audit] ${JSON.stringify(entry)}`);
-}
-// Security: rate limiter — sliding window, 120 calls per minute
-const _rateBuckets: number[] = [];
-const RATE_WINDOW_MS = 60_000;
-const RATE_MAX_CALLS = 120;
-function checkRateLimit(): void {
-  const now = Date.now();
-  while (_rateBuckets.length > 0 && now - _rateBuckets[0] > RATE_WINDOW_MS) _rateBuckets.shift();
-  if (_rateBuckets.length >= RATE_MAX_CALLS) throw new Error("Rate limit exceeded");
-  _rateBuckets.push(now);
 }
 /** Timeout wrapper — all API calls are time-bounded */
 async function withTimeout<T>(promise: Promise<T>, ms = 30_000): Promise<T> {
@@ -84,7 +76,7 @@ function validateTxid(id: unknown, fieldName: string): string {
   if (!TXID_RE.test(s)) throw new Error(`${fieldName} is not a valid transaction ID`);
   return s;
 }
-// ─── End Security Block (line ~62) ──────────────────────────────────
+// ─── End Security Block ─────────────────────────────────────────────
 
 // Tier 1 — Core
 import { getInscription } from "./tools/inscriptions/get.js";
@@ -173,8 +165,8 @@ function createServer() {
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const toolName = request.params.name;
 
-    // Security: rate limiting
-    try { checkRateLimit(); } catch (e) {
+    // Security: rate limiting (psm-mcp-core-ts sliding window)
+    try { rateLimiter.check("global"); } catch (e) {
       return errorResult(redactError(e));
     }
 

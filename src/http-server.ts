@@ -10,6 +10,12 @@
 
 import express, { Request, Response, NextFunction } from "express";
 import * as dotenv from "dotenv";
+import {
+  sanitizeError as psmSanitizeError,
+  validateNoInjection,
+  OutputFilter,
+  AuditLogger,
+} from "@psm/mcp-core-ts";
 
 // ── Security Constants ──────────────────────────────────────────────────
 const MAX_REQUEST_BODY = 1 * 1024 * 1024; // 1 MB
@@ -17,11 +23,20 @@ const MAX_TOOL_NAME_LEN = 64;
 const MAX_PARAM_VALUE_LEN = 1024;
 const SAFE_TOOL_NAME_RE = /^[a-z][a-z0-9_]{0,63}$/;
 
+/** Shared PSM output filter for HTTP responses. */
+const httpOutputFilter = new OutputFilter(true, true);
+
+/** Shared PSM audit logger for HTTP requests. */
+const httpAuditLog = new AuditLogger();
+
 /** Credential patterns that must never appear in responses. */
 const CREDENTIAL_RE =
   /(?:STRIPE_SECRET_KEY|STRIPE_PRO_PRICE_ID|STRIPE_ENTERPRISE_PRICE_ID|sk_live_|sk_test_)[^\s"']*/gi;
 
-/** Strip secrets from error messages before sending to clients. */
+/**
+ * Strip secrets from error messages before sending to clients.
+ * Combines local credential stripping with psm-mcp-core-ts sanitizeError.
+ */
 function redactError(msg: string): string {
   let safe = msg.replace(CREDENTIAL_RE, "[REDACTED]");
   // Redact env var values
@@ -35,10 +50,14 @@ function redactError(msg: string): string {
       safe = safe.replaceAll(val, "[REDACTED]");
     }
   }
-  return safe;
+  // Additional redaction via psm-mcp-core-ts (paths, long tokens)
+  return psmSanitizeError(safe, 500);
 }
 
-/** Validate tool arguments — reject null bytes, oversized values. */
+/**
+ * Validate tool arguments — reject null bytes, oversized values, injection patterns.
+ * Enhanced with psm-mcp-core-ts validateNoInjection.
+ */
 function validateArgs(args: Record<string, unknown>): void {
   for (const [key, val] of Object.entries(args)) {
     if (typeof val === "string") {
@@ -50,6 +69,8 @@ function validateArgs(args: Record<string, unknown>): void {
           `Parameter '${key}' exceeds max length (${val.length} > ${MAX_PARAM_VALUE_LEN})`,
         );
       }
+      // PSM injection check on all string params
+      validateNoInjection(val, key);
     }
   }
 }
@@ -340,30 +361,42 @@ app.post(
     }
 
     try {
+      // Validate arguments with PSM injection checks
+      const rawArgs = req.body.arguments || req.body.input || {};
+      if (rawArgs && typeof rawArgs === "object") {
+        validateArgs(rawArgs as Record<string, unknown>);
+      }
+
       // Build a CallToolRequest-like object for the handler
       const mcpRequest = {
         method: "tools/call" as const,
         params: {
           name: toolName,
-          arguments: req.body.arguments || req.body.input || {},
+          arguments: rawArgs,
         },
       };
 
+      const start = Date.now();
       const result = await handler(mcpRequest);
+      const durationMs = Date.now() - start;
 
       // Track usage after successful call
       if (req.customerId) {
         trackUsage(req.customerId);
       }
 
-      // Extract text content from MCP response
+      // Audit log via psm-mcp-core-ts
+      httpAuditLog.log("HTTP_TOOL_CALL", `${toolName} (${durationMs}ms)`, req.customerId ?? "anonymous");
+
+      // Extract text content from MCP response and filter via PSM OutputFilter
       const content = result.content
         .filter((c): c is { type: "text"; text: string } => c.type === "text")
         .map((c) => {
+          const filtered = httpOutputFilter.filter(c.text);
           try {
-            return JSON.parse(c.text);
+            return JSON.parse(filtered.text);
           } catch {
-            return c.text;
+            return filtered.text;
           }
         });
 
@@ -374,9 +407,11 @@ app.post(
         ...(result.isError ? { error: true } : {}),
       });
     } catch (error) {
-      console.error(`Tool ${toolName} error:`, redactError(error instanceof Error ? error.message : String(error)));
+      const safeMsg = redactError(error instanceof Error ? error.message : String(error));
+      console.error(`Tool ${toolName} error:`, safeMsg);
+      httpAuditLog.log("HTTP_TOOL_ERROR", `${toolName}: ${safeMsg}`, req.customerId ?? "anonymous");
       res.status(500).json({
-        error: error instanceof Error ? error.message : "Internal server error",
+        error: safeMsg,
       });
     }
   },
