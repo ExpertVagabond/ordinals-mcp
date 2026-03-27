@@ -1,0 +1,19 @@
+{
+  "name": "ordinals-mcp",
+  "owner": {
+    "name": "Purple Squirrel Media",
+    "email": "matthew@purplesquirrelmedia.io",
+    "github": "ExpertVagabond"
+  },
+  "plugins": [
+    {
+      "name": "ordinals-mcp",
+      "source": ".",
+      "description": "22-tool Bitcoin Ordinals MCP — inscriptions, runes, BRC-20, rare sats",
+      "version": "0.2.0",
+      "category": "blockchain",
+      "tools": 22,
+      "homepage": "https://github.com/ExpertVagabond/ordinals-mcp"
+    }
+  ]
+}
