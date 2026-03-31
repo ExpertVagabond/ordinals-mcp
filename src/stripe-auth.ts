@@ -1,5 +1,6 @@
 // Stripe authentication and subscription management for Ordinals MCP
 import Stripe from "stripe";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 function sanitizeError(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -35,9 +36,37 @@ export const TIERS: Record<string, TierLimits> = {
 };
 
 /**
- * Validate API key and return tier info
+ * Compute the expected HMAC-SHA256 hash for a customer ID.
+ * Returns a hex-encoded string.
+ */
+export function computeKeyHmac(customerId: string, secret: string): string {
+  return createHmac("sha256", secret).update(customerId).digest("hex");
+}
+
+/**
+ * Generate a complete API key for a customer.
+ * Format: skey_{customerId}_{hmac}
+ * Requires API_KEY_SECRET to be set.
+ */
+export function generateApiKey(customerId: string): string {
+  const secret = process.env.API_KEY_SECRET;
+  if (!secret) {
+    throw new Error(
+      "API_KEY_SECRET is not configured. Cannot generate API keys.",
+    );
+  }
+  const hmac = computeKeyHmac(customerId, secret);
+  return `skey_${customerId}_${hmac}`;
+}
+
+/**
+ * Validate API key and return tier info.
  * Free tier: no key or "free"
- * Paid tiers: skey_{customerId}_{hash}
+ * Paid tiers: skey_{customerId}_{hmac}
+ *
+ * The HMAC portion is verified against HMAC-SHA256(customerId, API_KEY_SECRET)
+ * to prevent forged keys. If API_KEY_SECRET is not set, all paid-tier auth
+ * is rejected.
  */
 export async function validateApiKey(
   apiKey: string,
@@ -51,9 +80,36 @@ export async function validateApiKey(
       return null;
     }
 
-    const parts = apiKey.split("_");
-    if (parts.length < 3) return null;
-    const customerId = parts[1];
+    const secret = process.env.API_KEY_SECRET;
+    if (!secret) {
+      console.error(
+        "API_KEY_SECRET is not configured. Rejecting all API key authentication.",
+      );
+      return null;
+    }
+
+    // Format: skey_{customerId}_{hmac}
+    // The HMAC is always 64 hex chars (SHA-256). Extract it from the end
+    // so customer IDs containing underscores (e.g. cus_XXXXX) are handled.
+    const withoutPrefix = apiKey.slice("skey_".length); // "customerId_hmac"
+    if (withoutPrefix.length < 66) return null; // minimum: 1-char id + "_" + 64-char hmac
+
+    const providedHmac = withoutPrefix.slice(-64);
+    const customerId = withoutPrefix.slice(0, -(64 + 1)); // strip "_" + hmac
+
+    if (!customerId) return null;
+
+    // Verify HMAC using constant-time comparison
+    const expectedHmac = computeKeyHmac(customerId, secret);
+    const expectedBuf = Buffer.from(expectedHmac, "hex");
+    const providedBuf = Buffer.from(providedHmac, "hex");
+
+    if (
+      expectedBuf.length !== providedBuf.length ||
+      !timingSafeEqual(expectedBuf, providedBuf)
+    ) {
+      return null;
+    }
 
     const subscriptions = await getStripe().subscriptions.list({
       customer: customerId,
