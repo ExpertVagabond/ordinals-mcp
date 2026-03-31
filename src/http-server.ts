@@ -168,12 +168,28 @@ async function authMiddleware(
   next();
 }
 
-// --- CORS ---
+// --- CORS (configurable origin allowlist) ---
+
+/** Parse ALLOWED_ORIGINS env var into a Set. If unset, no cross-origin requests allowed. */
+const allowedOrigins: Set<string> = (() => {
+  const raw = process.env.ALLOWED_ORIGINS;
+  if (!raw) return new Set<string>();
+  return new Set(
+    raw
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean),
+  );
+})();
 
 app.use((req: Request, res: Response, next: NextFunction) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Content-Type, X-API-Key");
-  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.has(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Vary", "Origin");
+    res.header("Access-Control-Allow-Headers", "Content-Type, X-API-Key");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  }
   if (req.method === "OPTIONS") {
     res.sendStatus(204);
     return;
