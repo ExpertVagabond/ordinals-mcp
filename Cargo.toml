@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "MCP server for Bitcoin Ordinals, BRC-20, and Runes -- 23 tools via Hiro, Ordiscan, and Magic Eden APIs"
 license = "MIT"
-authors = ["Purple Squirrel Media LLC"]
+authors = ["Matthew Karsten <matthewkarstenconnects@gmail.com>"]
 
 [dependencies]
 psm-mcp-core = { path = "../psm-mcp-core/psm-mcp-core" }
