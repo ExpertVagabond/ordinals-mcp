@@ -14,7 +14,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { RateLimiter } from "@psm/mcp-core-ts";
+import { RateLimiter } from "@purplesquirrel/mcp-core-ts";
 import type { McpAction } from "./types.js";
 import { errorResult, redactError, validateNoInjection, auditLog } from "./types.js";
 

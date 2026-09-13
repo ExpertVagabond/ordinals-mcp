@@ -15,7 +15,7 @@ import {
   validateNoInjection,
   OutputFilter,
   AuditLogger,
-} from "@psm/mcp-core-ts";
+} from "@purplesquirrel/mcp-core-ts";
 
 // ── Security Constants ──────────────────────────────────────────────────
 const MAX_REQUEST_BODY = 1 * 1024 * 1024; // 1 MB
