@@ -9,11 +9,11 @@ import {
   defaultFilter,
   AuditLogger,
   validateNoInjection,
-} from "@psm/mcp-core-ts";
+} from "@purplesquirrel/mcp-core-ts";
 
 // Re-export psm-mcp-core-ts utilities for use across the codebase
 export { validateNoInjection, OutputFilter, defaultFilter, AuditLogger };
-export type { FilterResult, Redaction } from "@psm/mcp-core-ts";
+export type { FilterResult, Redaction } from "@purplesquirrel/mcp-core-ts";
 
 type Tool = ListToolsResult["tools"][0];
 
